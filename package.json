@@ -6,7 +6,6 @@
     "test": "echo \"No tests yet...\""
   },
   "dependencies": {
-    "azure-storage": "^2.8.1"
   },
   "devDependencies": {}
 }

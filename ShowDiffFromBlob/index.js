@@ -1,9 +1,9 @@
 module.exports = async function (context, req, prevStatus) {
     context.log('JavaScript HTTP trigger function processed a request.')
-    context.log('prevStatus:')
-    context.log(prevStatus)
-    context.log('currentStatus:')
-    context.log(req.body)
+    context.log('prev:')
+    context.log(req.body.prev)
+    context.log('current:')
+    context.log(req.body.current)
 
     if (req.query.name || (req.body && req.body.name)) {
         context.res = {
