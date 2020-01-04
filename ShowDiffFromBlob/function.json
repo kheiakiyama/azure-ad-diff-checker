@@ -11,6 +11,14 @@
       ]
     },
     {
+      "name": "myBlob",
+      "type": "blob",
+      "direction": "in",
+      "path": "%AZURE_AD_META_BLOB_PATH%",
+      "connection": "AZURE_AD_META_BLOB_CONNECTION_STRING",
+      "datatype": "binary"
+    },
+    {
       "type": "http",
       "direction": "out",
       "name": "res"
