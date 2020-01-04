@@ -2,6 +2,14 @@
 Check Azure AD users updated
 
 ## Set up
+### Develop
+
+Sync environment variables from function app
+
+```
+func azure functionapp fetch-app-settings {YourFunction}
+```
+
 ### CI/CD
 Refer from [this url](https://docs.microsoft.com/ja-jp/azure/azure-functions/functions-how-to-github-actions)
 

@@ -1,6 +1,9 @@
-module.exports = async function (context, req, myBlob) {
+module.exports = async function (context, req, prevStatus) {
     context.log('JavaScript HTTP trigger function processed a request.')
-    context.log(myBlob)
+    context.log('prevStatus:')
+    context.log(prevStatus)
+    context.log('currentStatus:')
+    context.log(req.body)
 
     if (req.query.name || (req.body && req.body.name)) {
         context.res = {

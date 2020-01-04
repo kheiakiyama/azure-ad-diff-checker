@@ -11,7 +11,7 @@
       ]
     },
     {
-      "name": "myBlob",
+      "name": "prevStatus",
       "type": "blob",
       "direction": "in",
       "path": "%AZURE_AD_META_BLOB_PATH%",
