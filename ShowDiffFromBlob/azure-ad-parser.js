@@ -15,12 +15,12 @@ exports.diffUsers = (prev, current) => {
   let removed = []
   for (let i = 0; i < prev.length; i++) {
     if (!existsUser(prev[i], current)) {
-      removed.push(prev[i])
+      removed.push(prev[i].userPrincipalName)
     }
   }
   for (let i = 0; i < current.length; i++) {
     if (!existsUser(current[i], prev)) {
-      added.push(current[i])
+      added.push(current[i].userPrincipalName)
     }
   }
   return {
