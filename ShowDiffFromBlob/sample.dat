@@ -1,3 +1,4 @@
 {
-    "name": "Azure"
+    "prev": "{"@odata.context":"https://graph.microsoft.com/v1.0/$metadata#directoryObjects","value":[{}]}",
+    "current": "{"@odata.context":"https://graph.microsoft.com/v1.0/$metadata#directoryObjects","value":[{}]}"
 }
