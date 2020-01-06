@@ -16,6 +16,12 @@
         },
         "allUsersGroupId": {
             "value": null
+        },
+        "repoURL": {
+            "value": null
+        },
+        "branch": {
+            "value": null
         }
     }
 }
