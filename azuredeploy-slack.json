@@ -279,7 +279,7 @@
                                     "prev": "@{body('Get_blob_content')}"
                                 },
                                 "function": {
-                                    "id": "[resourceId('Microsoft.Web/sites/functions', parameters('functionAppName'), 'ShowDiffFromBlob')]"
+                                    "id": "[concat(resourceGroup().id,'/providers/Microsoft.Web/sites/', parameters('functionAppName'), '/functions/ShowDiffFromBlob')]"
                                 }
                             }
                         }
