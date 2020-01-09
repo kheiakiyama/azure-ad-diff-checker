@@ -2,7 +2,7 @@ exports.getUsers = (json) => {
   return JSON.parse(json).value
 }
 existsUser = (user, list) => {
-  if (!list.hasOwnProperty('length')) {
+  if (list === undefined) {
     return false
   }
   for (let i = 0; i < list.length; i++) {
