@@ -2,6 +2,9 @@ exports.getUsers = (json) => {
   return JSON.parse(json).value
 }
 existsUser = (user, list) => {
+  if (!list.hasOwnProperty('length')) {
+    return false
+  }
   for (let i = 0; i < list.length; i++) {
     if (list[i].id == user.id) {
       return true
