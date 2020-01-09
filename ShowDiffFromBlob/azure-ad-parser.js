@@ -21,7 +21,7 @@ exports.diffUsers = (prev, current) => {
     }
   }
   for (let i = 0; i < current.length; i++) {
-    if (!existsUser(current[i], prev)) {
+    if (prev === undefined || !existsUser(current[i], prev)) {
       added.push(current[i].userPrincipalName)
     }
   }
