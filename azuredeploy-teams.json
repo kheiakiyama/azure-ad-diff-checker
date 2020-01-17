@@ -1,0 +1,301 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "japaneast",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "functionAppName": {
+            "type": "String",
+            "metadata": {
+                "description": "The name for the function app."
+            }
+        },
+        "logicAppName": {
+            "type": "String",
+            "metadata": {
+                "description": "The name for the logic app."
+            }
+        },
+        "allUsersGroupId": {
+            "type": "String",
+            "metadata": {
+                "description": "Unique identifer of a group (Ex. '40639f36-46a6-73a6-91e2-9584b7913429')."
+            }
+        },
+        "teamsWebhookUrl": {
+            "type": "String",
+            "metadata": {
+                "description": "Incoming Webhook Url of Microsoft Teams (Ex. 'https://outlook.office.com/webhook/xxxxxxx')."
+            }
+        }
+    },
+    "variables": {
+        "connectionAzureAdName": "azure-ad-connection",
+        "connectionAzureBlobName": "azureblob-connection"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[variables('connectionAzureAdName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "displayName": "connectionsAzureAd",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat(subscription().id,'/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/azuread')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[variables('connectionAzureBlobName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "displayName": "connectionsAzureBlob",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat(subscription().id,'/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/azureblob')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('logicAppName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/connections', variables('connectionAzureAdName'))]",
+                "[resourceId('Microsoft.Web/connections', variables('connectionAzureBlobName'))]"
+            ],
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "Recurrence": {
+                            "recurrence": {
+                                "frequency": "Day",
+                                "interval": 1,
+                                "schedule": {
+                                    "hours": [
+                                        "9"
+                                    ]
+                                },
+                                "timeZone": "Tokyo Standard Time"
+                            },
+                            "type": "Recurrence"
+                        }
+                    },
+                    "actions": {
+                        "Get_group_members": {
+                            "runAfter": {},
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azuread']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "[concat('/v1.0/groups/@{encodeURIComponent(''', parameters('allUsersGroupId'), ''')}/members')]"
+                            }
+                        },
+                        "Get_blob_content": {
+                            "runAfter": {
+                                "Get_group_members": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "metadata": {
+                                "JTJmY3VycmVudCUyZmF6dXJlYWQtdXNlcnMuanNvbg==": "/current/azuread-users.json"
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azureblob']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/datasets/default/files/@{encodeURIComponent(encodeURIComponent('JTJmY3VycmVudCUyZmF6dXJlYWQtdXNlcnMuanNvbg=='))}/content",
+                                "queries": {
+                                    "inferContentType": true
+                                }
+                            }
+                        },
+                        "ShowDiffFromBlob": {
+                            "runAfter": {
+                                "Get_blob_content": [
+                                    "Succeeded",
+                                    "Failed"
+                                ]
+                            },
+                            "type": "Function",
+                            "inputs": {
+                                "body": {
+                                    "current": "@{body('Get_group_members')}",
+                                    "prev": "@{body('Get_blob_content')}"
+                                },
+                                "function": {
+                                    "id": "[concat(resourceGroup().id,'/providers/Microsoft.Web/sites/', parameters('functionAppName'), '/functions/ShowDiffFromBlob')]"
+                                }
+                            }
+                        },
+                        "Parse_JSON": {
+                            "runAfter": {
+                                "ShowDiffFromBlob": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ParseJson",
+                            "inputs": {
+                                "content": "@body('ShowDiffFromBlob')",
+                                "schema": {
+                                    "properties": {
+                                        "added": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "removed": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "Join_added": {
+                            "runAfter": {
+                                "Parse_JSON": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Join",
+                            "inputs": {
+                                "from": "@body('Parse_JSON')?['added']",
+                                "joinWith": ","
+                            }
+                        },
+                        "Join_removed": {
+                            "runAfter": {
+                                "Join_added": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Join",
+                            "inputs": {
+                                "from": "@body('Parse_JSON')?['removed']",
+                                "joinWith": ","
+                            }
+                        },
+                        "Create_blob": {
+                            "runAfter": {
+                                "Join_removed": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": "@{body('Get_group_members')}",
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azureblob']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/datasets/default/files",
+                                "queries": {
+                                    "folderPath": "/current",
+                                    "name": "azuread-users.json",
+                                    "queryParametersSingleEncoded": true
+                                }
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            }
+                        },
+                        "Condition": {
+                            "actions": {
+                                "HTTP": {
+                                    "runAfter": {},
+                                    "type": "Http",
+                                    "inputs": {
+                                        "body": {
+                                            "@@context": "https://schema.org/extensions",
+                                            "@@type": "MessageCard",
+                                            "summary": "dmy",
+                                            "themeColor": "FF7800",
+                                            "title": "added: @{body('Join_added')}, removed: @{body('Join_removed')}"
+                                        },
+                                        "method": "POST",
+                                        "uri": "[parameters('teamsWebhookUrl')]"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Create_blob": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "expression": {
+                                "or": [
+                                    {
+                                        "equals": [
+                                            "@empty(body('Join_removed'))",
+                                            "@false"
+                                        ]
+                                    },
+                                    {
+                                        "equals": [
+                                            "@empty(body('Join_added'))",
+                                            "@false"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "type": "If"
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "azuread": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', variables('connectionAzureAdName'))]",
+                                "connectionName": "azuread",
+                                "id": "[concat(subscription().id,'/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/azuread')]"
+                            },
+                            "azureblob": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', variables('connectionAzureBlobName'))]",
+                                "connectionName": "azureblob",
+                                "id": "[concat(subscription().id,'/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/azureblob')]"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
