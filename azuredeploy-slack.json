@@ -98,7 +98,13 @@
                         "Recurrence": {
                             "recurrence": {
                                 "frequency": "Day",
-                                "interval": 1
+                                "interval": 1,
+                                "schedule": {
+                                    "hours": [
+                                        "9"
+                                    ]
+                                },
+                                "timeZone": "Tokyo Standard Time"
                             },
                             "type": "Recurrence"
                         }
@@ -238,26 +244,48 @@
                                 }
                             }
                         },
-                        "Post_message": {
+                        "Condition": {
+                            "actions": {
+                                "Post_message": {
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['slack']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/chat.postMessage",
+                                        "queries": {
+                                            "channel": "",
+                                            "text": "added: @{body('Join_added')}, removed: @{body('Join_removed')}"
+                                        }
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                }
+                            },
+                            "expression": {
+                                "or": [
+                                    {
+                                        "equals": [
+                                            "@empty(body('Join_removed'))",
+                                            "@false"
+                                        ]
+                                    },
+                                    {
+                                        "equals": [
+                                            "@empty(body('Join_added'))",
+                                            "@false"
+                                        ]
+                                    }
+                                ]
+                            },
                             "runAfter": {
                                 "Create_blob": [
                                     "Succeeded"
                                 ]
                             },
-                            "type": "ApiConnection",
-                            "inputs": {
-                                "host": {
-                                    "connection": {
-                                        "name": "@parameters('$connections')['slack']['connectionId']"
-                                    }
-                                },
-                                "method": "post",
-                                "path": "/chat.postMessage",
-                                "queries": {
-                                    "channel": "",
-                                    "text": "added: @{body('Join_added')}, removed: @{body('Join_removed')}"
-                                }
-                            }
+                            "type": "If"
                         }
                     },
                     "outputs": {}
