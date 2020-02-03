@@ -11,9 +11,15 @@ module.exports = async function (context, req) {
     const prev = AzureAdParser.getUsers(req.body.prev)
     context.log('prev:')
     context.log(prev)
+    if (prev !== undefined) {
+        context.log(prev.length)
+    }
     const current = AzureAdParser.getUsers(req.body.current)
     context.log('current:')
     context.log(current)
+    if (current !== undefined) {
+        context.log(current.length)
+    }
     context.res = {
         // status: 200, /* Defaults to 200 */
         body: AzureAdParser.diffUsers(prev, current)
